@@ -1,0 +1,36 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Home from './pages/Home';
+import Women from './pages/Women';
+import Men from './pages/Men';
+import Kids from './pages/Kids';
+import Unisex from './pages/Unisex';
+import ProductDetail from './pages/ProductDetail';
+import Admin from './pages/Admin';
+
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/women" element={<Women />} />
+            <Route path="/men" element={<Men />} />
+            <Route path="/kids" element={<Kids />} />
+            <Route path="/unisex" element={<Unisex />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </AnimatePresence>
+        <Footer />
+      </div>
+    </Router>
+  );
+}
+
+export default App;
