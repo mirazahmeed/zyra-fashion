@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import CartDropdown from './CartDropdown';
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,7 +25,7 @@ const Header: React.FC = () => {
               </Link>
 
               {/* Navigation Links */}
-              <div className="flex items-center space-x-12">
+              <div className="flex items-center space-x-8">
                 {['men', 'women', 'kids', 'unisex', 'about'].map((item) => (
                   <Link
                     key={item}
@@ -56,6 +57,9 @@ const Header: React.FC = () => {
                     transition={{ duration: 0.3 }}
                   />
                 </Link>
+                
+                {/* Cart Dropdown */}
+                <CartDropdown />
               </div>
             </div>
           </div>
@@ -110,6 +114,30 @@ const Header: React.FC = () => {
                   >
                     Admin
                   </Link>
+                  
+                  {/* Mobile Cart Link */}
+                  <div className="pt-6 border-t border-gray-200">
+                    <Link
+                      to="/cart"
+                      className="flex items-center justify-between text-lg font-medium tracking-wider text-gray-900 uppercase"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <span>Cart</span>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
             )}
