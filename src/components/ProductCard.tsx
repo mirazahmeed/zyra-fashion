@@ -25,8 +25,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
     <Link to={`/product/${product.id}`}>
       <motion.article
         className="group bg-white overflow-hidden cursor-pointer transition-all duration-700"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 10, y: 30 }}
+        animate={{ opacity: 20, y: 0 }}
         transition={{ 
           delay: index * 0.1, 
           duration: 0.8,
@@ -38,13 +38,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
         }}
       >
         {/* Product Image - Grayscale Filter */}
-        <div className="relative overflow-hidden bg-gray-50">
+        <div className="relative overflow-hidden bg-gray-50 aspect-[3/4]" >
           <motion.img
-            src={product.image.startsWith('http') ? product.image : product.image}
+            src={product.image}
             alt={product.name}
-            className="w-full h-[500px] object-cover grayscale transition-all duration-700 group-hover:scale-105"
+            className="w-full h-auto aspect-[3/4] object-cover grayscale transition-all duration-700 group-hover:scale-105"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = 'https://via.placeholder.com/400x500/cccccc?text=No+Image';
+              (e.currentTarget as HTMLImageElement).src = 'https://picsum.photos/seed/noimage/400/500.jpg';
             }}
             whileHover={{ 
               filter: 'grayscale(0%)',
@@ -72,8 +72,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
           {/* Subtle Hover State */}
           <motion.div
             className="text-xs font-medium tracking-widest text-black uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-            initial={{ opacity: 0 }}
-            whileHover={{ opacity: 1 }}
+            initial={{ opacity: 10 }}
+            whileHover={{ opacity: 20 }}
           >
             View Details
           </motion.div>

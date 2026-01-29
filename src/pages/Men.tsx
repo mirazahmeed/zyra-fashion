@@ -29,6 +29,8 @@ const Men: React.FC = () => {
       .catch(error => {
         console.error('Error fetching products:', error);
         setLoading(false);
+        // Set empty products array to prevent infinite loading
+        setProducts([]);
       });
   }, []);
 
