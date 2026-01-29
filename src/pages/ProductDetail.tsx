@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useCart } from '../context/CartContext';
+import SwipableImage from '../components/SwipableImage';
 
 interface Product {
   id: number;
@@ -8,6 +10,7 @@ interface Product {
   categories: string[];
   price: number;
   image: string;
+  images?: string[];
   description: string;
   isBest: boolean;
   colors: string[];
@@ -18,6 +21,7 @@ interface Product {
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,12 +29,18 @@ const ProductDetail: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [notification, setNotification] = useState('');
+  const [mainImageIndex, setMainImageIndex] = useState(0);
 
   useEffect(() => {
     if (id) {
       fetchProduct(parseInt(id));
     }
   }, [id]);
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const fetchProduct = async (productId: number) => {
     try {
@@ -117,8 +127,13 @@ const ProductDetail: React.FC = () => {
       return;
     }
 
+    addToCart(product, quantity, selectedColor, selectedSize);
     setNotification(`Added ${product.name} to cart`);
     setTimeout(() => setNotification(''), 3000);
+  };
+
+  const setMainImage = (index: number) => {
+    setMainImageIndex(index);
   };
 
   const handleBuyNow = () => {
@@ -135,8 +150,8 @@ const ProductDetail: React.FC = () => {
       return;
     }
 
-    setNotification(`Processing purchase of ${product.name}...`);
-    setTimeout(() => setNotification(''), 3000);
+    addToCart(product, quantity, selectedColor, selectedSize);
+    navigate('/cart');
   };
 
   return (
@@ -164,22 +179,74 @@ const ProductDetail: React.FC = () => {
           transition={{ duration: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-12"
         >
-          {/* Product Image */}
+          {/* Product Images - Left Side */}
           <div className="md:col-span-1">
-            <div className="relative overflow-hidden bg-gray-50">
-              <img
-                src={product.image.startsWith('http') ? product.image : `http://localhost:5001${product.image}`}
+            <div className="relative w-full h-[600px] overflow-hidden bg-gray-50 rounded-lg">
+              <SwipableImage
+                images={product.images || [product.image]}
                 alt={product.name}
-                className="w-full h-[600px] object-cover grayscale transition-all duration-700 md:grayscale-0 hover:scale-105"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = 'https://via.placeholder.com/600x800/cccccc?text=Product+Not+Found';
-                }}
+                className=""
+                currentIndex={mainImageIndex}
+                onSwipeChange={setMainImage}
+                showArrows={false}
               />
             </div>
+            
+            {/* Image Navigation Buttons */}
+            {(product.images && product.images.length > 1) && (
+              <div className="flex justify-between items-center mt-4">
+                <button
+                  onClick={() => setMainImage(Math.max(0, mainImageIndex - 1))}
+                  disabled={mainImageIndex === 0}
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="text-sm">Previous</span>
+                </button>
+                
+                <div className="text-sm text-gray-600 font-medium">
+                  Image {mainImageIndex + 1} of {product.images.length}
+                </div>
+                
+                <button
+                  onClick={() => setMainImage(Math.min(product.images.length - 1, mainImageIndex + 1))}
+                  disabled={mainImageIndex === product.images.length - 1}
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="text-sm">Next</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            
+            {/* Thumbnail Gallery - Clickable */}
+            {(product.images && product.images.length > 1) && (
+              <div className="flex space-x-3 mt-4 overflow-x-auto pb-2 max-w-full">
+                {product.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setMainImage(index)}
+                    className={`flex-shrink-0 w-16 h-16 border-2 rounded-lg overflow-hidden transition-all ${
+                      mainImageIndex === index ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <img
+                      src={img.startsWith('http') ? img : `http://localhost:5001${img}`}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Product Details */}
-          <div className="md:col-span-1 space-y-8">
+          {/* Product Details - Right Side */}
+          <div className="md:col-span-1">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black mb-6">
               {product.name}
             </h1>

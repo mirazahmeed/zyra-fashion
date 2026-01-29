@@ -10,6 +10,7 @@ interface Product {
   description: string;
   isBest: boolean;
   image: string;
+  images?: string[];
   colors: string[];
   sizes: string[];
   inventory: { [key: string]: number };
@@ -38,7 +39,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     inventory: {} as { [key: string]: number }
   });
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<FileList | null>(null);
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
   
@@ -139,7 +140,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImageFile(e.target.files[0]);
+      setImageFiles(e.target.files);
     }
   };
 
@@ -172,8 +173,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         formDataToSend.append(key, productData[key as keyof typeof productData]);
       });
       
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
+      if (imageFiles) {
+        for (let i = 0; i < imageFiles.length; i++) {
+          formDataToSend.append('images', imageFiles[i]);
+        }
       }
 
       let response;
@@ -251,7 +254,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       sizes: [''],
       inventory: {}
     });
-    setImageFile(null);
+    setImageFiles(null);
     setColorInput('');
     setSizeInput('');
     setEditingProduct(null);
@@ -351,13 +354,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Image</label>
+                    <label className="block text-sm font-medium text-gray-700">Images (Multiple files allowed, up to 10)</label>
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleImageChange}
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
                     />
+                    {imageFiles && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        {imageFiles.length} file(s) selected
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>

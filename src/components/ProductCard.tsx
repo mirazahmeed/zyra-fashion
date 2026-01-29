@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import SwipableImage from './SwipableImage';
 
 interface Product {
   id: number;
@@ -9,6 +10,7 @@ interface Product {
   categories: string[];
   price: number;
   image: string;
+  images?: string[];
   description: string;
   isBest: boolean;
   colors?: string[];
@@ -42,8 +44,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
       <Link to={`/product/${product.id}`}>
         <motion.article
           className="group bg-white overflow-hidden cursor-pointer transition-all duration-700"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 10, y: 30 }}
+          animate={{ opacity: 20, y: 0 }}
           transition={{ 
             delay: index * 0.1, 
             duration: 0.8,
@@ -54,22 +56,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
             transition: { duration: 0.4 }
           }}
         >
-        {/* Product Image - Grayscale Filter */}
+        {/* Product Images - Swipable */}
         <div className="relative overflow-hidden bg-gray-50 aspect-[3/4]" >
-          <motion.img
-            src={product.image}
+          <SwipableImage
+            images={product.images || [product.image]}
             alt={product.name}
-            className="w-full h-auto aspect-[3/4] object-cover grayscale transition-all duration-700 group-hover:scale-105"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = 'https://picsum.photos/seed/noimage/400/500.jpg';
-            }}
-            whileHover={{ 
-              filter: 'grayscale(0%)',
-              transition: { duration: 0.4 }
-            }}
+            className="aspect-[3/4]"
           />
           {product.isBest && (
-            <div className="absolute top-4 left-4 bg-black text-white text-xs font-medium tracking-widest px-3 py-1">
+            <div className="absolute top-4 left-4 bg-black text-white text-xs font-medium tracking-widest px-3 py-1 z-20">
               EDITORIAL
             </div>
           )}
@@ -89,8 +84,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) => {
           {/* Subtle Hover State */}
           <motion.div
             className="text-xs font-medium tracking-widest text-black uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-            initial={{ opacity: 0 }}
-            whileHover={{ opacity: 1 }}
+            initial={{ opacity: 10 }}
+            whileHover={{ opacity: 20 }}
           >
             View Details
           </motion.div>
