@@ -44,8 +44,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   const [imageFiles, setImageFiles] = useState<(File | string)[]>([]);
   const [colorInput, setColorInput] = useState('');
-  const [sizeInput, setSizeInput] = useState('');
-  
+  const [sizeInput, setSizeInput] = useState('');  
   // Available categories for selection
   const availableCategories = ['men', 'women', 'kids', 'unisex'];
 
@@ -168,13 +167,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       const existingImages = imageFiles.filter(img => typeof img === 'string') as string[];
       const newFiles = imageFiles.filter(img => img instanceof File) as File[];
       
-      console.log('Debug - Image files handling:', {
-        total: imageFiles.length,
-        existing: existingImages.length,
-        new: newFiles.length,
-        existingImagesArray: existingImages
-      });
-      
       const productData = {
         name: formData.name,
         categories: JSON.stringify(formData.categories),
@@ -193,7 +185,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       });
       
       // Handle new files only
-      const newFiles = imageFiles.filter(img => img instanceof File) as File[];
       if (newFiles.length > 0) {
         for (let i = 0; i < newFiles.length; i++) {
           formDataToSend.append('images', newFiles[i]);
@@ -264,9 +255,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         image !== null && 
         image !== undefined
       );
-    console.log('Debug - Setting existing images for editing:', existingImages);
-    setImageFiles(existingImages);
     
+    setImageFiles(existingImages);
     setShowAddForm(true);
   };
 
