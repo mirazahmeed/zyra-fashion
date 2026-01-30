@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import ImageUpload from './ImageUpload';
+import ImageGallery from './ImageGallery';
 
 interface Product {
   id: number;
@@ -27,6 +29,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [activeTab, setActiveTab] = useState<'products' | 'images'>('products');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,12 +37,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     price: '',
     description: '',
     isBest: false,
-    colors: [''],
-    sizes: [''],
+    colors: [] as string[],
+    sizes: [] as string[],
     inventory: {} as { [key: string]: number }
   });
 
-  const [imageFiles, setImageFiles] = useState<FileList | null>(null);
+  const [imageFiles, setImageFiles] = useState<(File | string)[]>([]);
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
   
@@ -71,10 +74,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const addColor = () => {
-    if (colorInput.trim() && !formData.colors.includes(colorInput.trim())) {
+    const trimmedColor = colorInput.trim();
+    if (trimmedColor && !formData.colors.includes(trimmedColor)) {
       setFormData({
         ...formData,
-        colors: [...formData.colors, colorInput.trim()]
+        colors: [...formData.colors, trimmedColor]
       });
       setColorInput('');
     }
@@ -86,10 +90,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   const addSize = () => {
-    if (sizeInput.trim() && !formData.sizes.includes(sizeInput.trim())) {
+    const trimmedSize = sizeInput.trim();
+    if (trimmedSize && !formData.sizes.includes(trimmedSize)) {
       setFormData({
         ...formData,
-        sizes: [...formData.sizes, sizeInput.trim()]
+        sizes: [...formData.sizes, trimmedSize]
       });
       setSizeInput('');
     }
@@ -114,12 +119,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const generateInventoryGrid = () => {
     const inventory = { ...formData.inventory };
     formData.sizes.forEach(size => {
-      formData.colors.forEach(color => {
-        const key = `${size}-${color}`;
-        if (inventory[key] === undefined) {
-          inventory[key] = 0;
-        }
-      });
+      if (size.trim() !== '') {
+        formData.colors.forEach(color => {
+          if (color.trim() !== '') {
+            const key = `${size}-${color}`;
+            if (inventory[key] === undefined) {
+              inventory[key] = 0;
+            }
+          }
+        });
+      }
     });
     setFormData({ ...formData, inventory });
   };
@@ -138,10 +147,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImageFiles(e.target.files);
-    }
+  const handleImageChange = (images: (File | string)[]) => {
+    setImageFiles(images);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,7 +172,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         isBest: formData.isBest.toString(),
         colors: JSON.stringify(validColors),
         sizes: JSON.stringify(validSizes),
-        inventory: JSON.stringify(formData.inventory)
+        inventory: JSON.stringify(formData.inventory),
+        existingImages: JSON.stringify(imageFiles.filter(img => typeof img === 'string') as string[])
       };
 
       const formDataToSend = new FormData();
@@ -173,14 +181,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         formDataToSend.append(key, productData[key as keyof typeof productData]);
       });
       
-      if (imageFiles) {
-        for (let i = 0; i < imageFiles.length; i++) {
-          formDataToSend.append('images', imageFiles[i]);
+      // Handle new files only
+      const newFiles = imageFiles.filter(img => img instanceof File) as File[];
+      if (newFiles.length > 0) {
+        for (let i = 0; i < newFiles.length; i++) {
+          formDataToSend.append('images', newFiles[i]);
         }
       }
 
       let response;
-        if (editingProduct) {
+      if (editingProduct) {
         response = await axios.put(
           `/api/admin/products/${editingProduct.id}`,
           formDataToSend,
@@ -225,6 +235,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       sizes: product.sizes || [],
       inventory: product.inventory || {}
     });
+    
+    // Set existing images for editing
+    const existingImages = product.images || [product.image].filter(img => img && img !== 'https://via.placeholder.com/300x400?text=No+Image');
+    setImageFiles(existingImages);
+    
     setShowAddForm(true);
   };
 
@@ -250,11 +265,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       price: '',
       description: '',
       isBest: false,
-      colors: [''],
-      sizes: [''],
+      colors: [],
+      sizes: [],
       inventory: {}
     });
-    setImageFiles(null);
+    setImageFiles([]);
     setColorInput('');
     setSizeInput('');
     setEditingProduct(null);
@@ -265,7 +280,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
           <button
             onClick={onLogout}
             className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
@@ -274,344 +289,389 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           </button>
         </div>
 
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'products'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Products
+              </button>
+              <button
+                onClick={() => setActiveTab('images')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'images'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Images
+              </button>
+            </nav>
+          </div>
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+            <div className="flex justify-between items-start">
+              <span>{error}</span>
+              <button
+                onClick={() => setError('')}
+                className="text-red-500 hover:text-red-700 ml-4"
+              >
+                ×
+              </button>
+            </div>
           </div>
         )}
 
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
+            <div className="flex justify-between items-start">
+              <span>{success}</span>
+              <button
+                onClick={() => setSuccess('')}
+                className="text-green-500 hover:text-green-700 ml-4"
+              >
+                ×
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="mb-6">
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-          >
-            {showAddForm ? 'Cancel' : 'Add New Product'}
-          </button>
-        </div>
+        {/* Content based on active tab */}
+        {activeTab === 'images' ? (
+          <ImageGallery onLogout={onLogout} />
+        ) : (
+          <>
+            <div className="mb-6">
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                {showAddForm ? 'Cancel' : 'Add New Product'}
+              </button>
+            </div>
 
-        <AnimatePresence>
-          {showAddForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white rounded-lg shadow-md p-6 mb-8"
-            >
-              <h2 className="text-xl font-semibold mb-4">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
-                    <div className="space-y-2">
-                      {availableCategories.map(category => (
-                        <label key={category} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={formData.categories.includes(category)}
-                            onChange={() => toggleCategory(category)}
-                            className="mr-2"
-                          />
-                          <span className="capitalize text-gray-700">
-                            {category === 'unisex' ? 'Unisex' : category}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    {formData.categories.length === 0 && (
-                      <p className="text-sm text-red-600">Please select at least one category</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Price</label>
-                    <input
-                      type="number"
-                      name="price"
-                      required
-                      step="0.01"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Images (Multiple files allowed, up to 10)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
-                    />
-                    {imageFiles && (
-                      <div className="mt-2 text-sm text-gray-600">
-                        {imageFiles.length} file(s) selected
+            <AnimatePresence>
+              {showAddForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-white rounded-lg shadow-md p-6 mb-8"
+                >
+                  <h2 className="text-xl font-semibold mb-4">
+                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  </h2>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
+                        />
                       </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <textarea
-                    name="description"
-                    rows={3}
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
-                  />
-                </div>
-                {/* Colors Management */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Colors</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.colors.map((color, index) => (
-                      <div key={index} className="flex items-center space-x-1">
-                        <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded text-sm">
-                          {color}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeColor(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={colorInput}
-                      onChange={(e) => setColorInput(e.target.value)}
-                      placeholder="Add color"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={addColor}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    >
-                      Add Color
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sizes Management */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sizes</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.sizes.map((size, index) => (
-                      <div key={index} className="flex items-center space-x-1">
-                        <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded text-sm">
-                          {size}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeSize(index)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={sizeInput}
-                      onChange={(e) => setSizeInput(e.target.value)}
-                      placeholder="Add size"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={addSize}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    >
-                      Add Size
-                    </button>
-                  </div>
-                </div>
-
-                {/* Inventory Management */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">Inventory Management</label>
-                    <button
-                      type="button"
-                      onClick={generateInventoryGrid}
-                      className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-                    >
-                      Generate Grid
-                    </button>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
-                    <div className="grid grid-cols-1 gap-2">
-                      {formData.sizes.map(size => (
-                        <div key={size} className="space-y-2">
-                          <div className="font-medium text-sm text-gray-700">{size}:</div>
-                          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                            {formData.colors.map(color => {
-                              const key = `${size}-${color}`;
-                              const quantity = formData.inventory[key] || 0;
-                              return (
-                                <div key={key} className="flex items-center space-x-1">
-                                  <span className="text-xs text-gray-600 w-12">{color}:</span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={quantity}
-                                    onChange={(e) => updateInventory(size, color, parseInt(e.target.value) || 0)}
-                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-indigo-500"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+                        <div className="space-y-2">
+                          {availableCategories.map(category => (
+                            <label key={category} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={formData.categories.includes(category)}
+                                onChange={() => toggleCategory(category)}
+                                className="mr-2"
+                              />
+                              <span className="capitalize text-gray-700">
+                                {category === 'unisex' ? 'Unisex' : category}
+                              </span>
+                            </label>
+                          ))}
                         </div>
-                      ))}
+                        {formData.categories.length === 0 && (
+                          <p className="text-sm text-red-600">Please select at least one category</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Price</label>
+                        <input
+                          type="number"
+                          name="price"
+                          required
+                          step="0.01"
+                          value={formData.price}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
+                        <ImageUpload
+                          images={imageFiles}
+                          onChange={handleImageChange}
+                          maxImages={10}
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="isBest"
-                      checked={formData.isBest}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Best Seller</span>
-                  </label>
-                </div>
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {loading ? 'Saving...' : (editingProduct ? 'Update' : 'Create')}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Image
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Best Seller
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
-                  <motion.tr
-                    key={product.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <img
-                        src={product.image.startsWith('http') ? product.image : `http://localhost:5001${product.image}`}
-                        alt={product.name}
-                        className="h-12 w-12 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/48x48?text=No+Img';
-                        }}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <textarea
+                        name="description"
+                        rows={3}
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500"
                       />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {product.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {product.categories.join(', ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${product.price}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.isBest ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                          No
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    </div>
+                    
+                    {/* Colors Management */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Colors</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {formData.colors.map((color, index) => (
+                          <div key={index} className="flex items-center space-x-1">
+                            <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded text-sm">
+                              {color}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeColor(index)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={colorInput}
+                          onChange={(e) => setColorInput(e.target.value)}
+                          placeholder="Add color"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={addColor}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                        >
+                          Add Color
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Sizes Management */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sizes</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {formData.sizes.map((size, index) => (
+                          <div key={index} className="flex items-center space-x-1">
+                            <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded text-sm">
+                              {size}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeSize(index)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={sizeInput}
+                          onChange={(e) => setSizeInput(e.target.value)}
+                          placeholder="Add size"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={addSize}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                        >
+                          Add Size
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Inventory Management */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Inventory Management</label>
+                        <button
+                          type="button"
+                          onClick={generateInventoryGrid}
+                          className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                        >
+                          Generate Grid
+                        </button>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-2">
+                          {formData.sizes.map(size => (
+                            <div key={size} className="space-y-2">
+                              <div className="font-medium text-sm text-gray-700">{size}:</div>
+                              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                                {formData.colors.map(color => {
+                                  const key = `${size}-${color}`;
+                                  const quantity = formData.inventory[key] || 0;
+                                  return (
+                                    <div key={key} className="flex items-center space-x-1">
+                                      <span className="text-xs text-gray-600 w-12">{color}:</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={quantity}
+                                        onChange={(e) => updateInventory(size, color, parseInt(e.target.value) || 0)}
+                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-indigo-500"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="isBest"
+                          checked={formData.isBest}
+                          onChange={handleInputChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Best Seller</span>
+                      </label>
+                    </div>
+                    <div className="flex justify-end space-x-4">
                       <button
-                        onClick={() => handleEdit(product)}
-                        className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        type="button"
+                        onClick={resetForm}
+                        className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                       >
-                        Edit
+                        Cancel
                       </button>
                       <button
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-900"
+                        type="submit"
+                        disabled={loading}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
                       >
-                        Delete
+                        {loading ? 'Saving...' : (editingProduct ? 'Update' : 'Create')}
                       </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Image
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Category
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Best Seller
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {products.map((product) => (
+                      <motion.tr
+                        key={product.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <img
+                            src={product.image.startsWith('http') ? product.image : `http://localhost:5001${product.image}`}
+                            alt={product.name}
+                            className="h-12 w-12 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://via.placeholder.com/48x48?text=No+Img';
+                            }}
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {product.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {product.categories.join(', ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ${product.price}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {product.isBest ? (
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                              No
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleEdit(product)}
+                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

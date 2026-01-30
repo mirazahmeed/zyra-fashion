@@ -207,12 +207,12 @@ const ProductDetail: React.FC = () => {
                 </button>
                 
                 <div className="text-sm text-gray-600 font-medium">
-                  Image {mainImageIndex + 1} of {product.images.length}
+                  Image {mainImageIndex + 1} of {product.images?.length || 1}
                 </div>
                 
                 <button
-                  onClick={() => setMainImage(Math.min(product.images.length - 1, mainImageIndex + 1))}
-                  disabled={mainImageIndex === product.images.length - 1}
+                  onClick={() => setMainImage(Math.min((product.images?.length || 1) - 1, mainImageIndex + 1))}
+                  disabled={mainImageIndex === (product.images?.length || 1) - 1}
                   className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <span className="text-sm">Next</span>

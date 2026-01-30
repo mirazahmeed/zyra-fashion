@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import AuthGuard from '../components/AuthGuard';
 
 const CartPage: React.FC = () => {
   const { cart, getTotalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
@@ -208,9 +209,23 @@ const CartPage: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <button className="w-full py-3 px-4 bg-black text-white text-sm font-medium tracking-wider uppercase rounded-md hover:bg-gray-900 transition-colors duration-200">
-                  Proceed to Checkout
-                </button>
+                <AuthGuard
+                  fallback={
+                    <button 
+                      className="w-full py-3 px-4 bg-gray-400 text-white text-sm font-medium tracking-wider uppercase rounded-md cursor-not-allowed"
+                      disabled
+                    >
+                      Sign In to Checkout
+                    </button>
+                  }
+                >
+                  <Link
+                    to="/checkout"
+                    className="block w-full py-3 px-4 bg-black text-white text-sm font-medium tracking-wider uppercase rounded-md hover:bg-gray-900 transition-colors duration-200 text-center"
+                  >
+                    Proceed to Checkout
+                  </Link>
+                </AuthGuard>
                 
                 <Link
                   to="/"

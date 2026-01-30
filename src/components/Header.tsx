@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import CartDropdown from './CartDropdown';
+import UserDropdown from './UserDropdown';
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -57,6 +58,9 @@ const Header: React.FC = () => {
                     transition={{ duration: 0.3 }}
                   />
                 </Link>
+                
+                {/* User Dropdown */}
+                <UserDropdown />
                 
                 {/* Cart Dropdown */}
                 <CartDropdown />
@@ -115,29 +119,53 @@ const Header: React.FC = () => {
                     Admin
                   </Link>
                   
-                  {/* Mobile Cart Link */}
-                  <div className="pt-6 border-t border-gray-200">
-                    <Link
-                      to="/cart"
-                      className="flex items-center justify-between text-lg font-medium tracking-wider text-gray-900 uppercase"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <span>Cart</span>
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </Link>
-                  </div>
+                   {/* Mobile User Link */}
+                   <div className="pt-6 border-t border-gray-200">
+                     <Link
+                       to="/auth"
+                       className="flex items-center justify-between text-lg font-medium tracking-wider text-gray-900 uppercase"
+                       onClick={() => setMobileMenuOpen(false)}
+                     >
+                       <span>Account</span>
+                       <svg
+                         className="w-5 h-5"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24"
+                       >
+                         <path
+                           strokeLinecap="round"
+                           strokeLinejoin="round"
+                           strokeWidth={2}
+                           d="M9 5l7 7-7 7"
+                         />
+                       </svg>
+                     </Link>
+                   </div>
+                   
+                   {/* Mobile Cart Link */}
+                   <div className="pt-2">
+                     <Link
+                       to="/cart"
+                       className="flex items-center justify-between text-lg font-medium tracking-wider text-gray-900 uppercase"
+                       onClick={() => setMobileMenuOpen(false)}
+                     >
+                       <span>Cart</span>
+                       <svg
+                         className="w-5 h-5"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24"
+                       >
+                         <path
+                           strokeLinecap="round"
+                           strokeLinejoin="round"
+                           strokeWidth={2}
+                           d="M9 5l7 7-7 7"
+                         />
+                       </svg>
+                     </Link>
+                   </div>
                 </div>
               </motion.div>
             )}
