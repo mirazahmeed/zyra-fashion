@@ -164,6 +164,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       const validColors = formData.colors.filter(color => color.trim() !== '');
       const validSizes = formData.sizes.filter(size => size.trim() !== '');
       
+      // Separate existing images from new files
+      const existingImages = imageFiles.filter(img => typeof img === 'string') as string[];
+      const newFiles = imageFiles.filter(img => img instanceof File) as File[];
+      
+      console.log('Debug - Image files handling:', {
+        total: imageFiles.length,
+        existing: existingImages.length,
+        new: newFiles.length,
+        existingImagesArray: existingImages
+      });
+      
       const productData = {
         name: formData.name,
         categories: JSON.stringify(formData.categories),
@@ -173,7 +184,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         colors: JSON.stringify(validColors),
         sizes: JSON.stringify(validSizes),
         inventory: JSON.stringify(formData.inventory),
-        existingImages: JSON.stringify(imageFiles.filter(img => typeof img === 'string') as string[])
+        existingImages: JSON.stringify(existingImages)
       };
 
       const formDataToSend = new FormData();
@@ -217,7 +228,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       fetchProducts();
       resetForm();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Operation failed');
+      console.error('Product update error:', err);
+      const errorMessage = err.response?.data?.error || 'Operation failed';
+      const errorDetails = err.response?.data ? {
+        status: err.response.status,
+        statusText: err.response.statusText,
+        data: err.response.data
+      } : null;
+      
+      console.error('Error details:', errorDetails);
+      setError(`${errorMessage} ${errorDetails ? `(${err.response.status})` : ''}`);
     } finally {
       setLoading(false);
     }
@@ -237,7 +257,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     });
     
     // Set existing images for editing
-    const existingImages = product.images || [product.image].filter(img => img && img !== 'https://via.placeholder.com/300x400?text=No+Image');
+    const existingImages = product.images || [product.image]
+      .filter(image => image && 
+        image !== 'https://via.placeholder.com/300x400?text=No+Image' && 
+        image !== '' && 
+        image !== null && 
+        image !== undefined
+      );
+    console.log('Debug - Setting existing images for editing:', existingImages);
     setImageFiles(existingImages);
     
     setShowAddForm(true);
