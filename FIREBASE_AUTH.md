@@ -72,7 +72,8 @@ const firebaseConfig = {
 
 ```
 src/
-├── firebase.ts                 # Firebase configuration and exports
+├── .env                      # 🔒 SECURE: Firebase environment variables (git-ignored)
+├── firebase.ts                # 🔐 SECURE: Firebase config with environment variables
 ├── context/
 │   └── AuthContext.tsx        # Authentication context and state management
 ├── components/
@@ -88,6 +89,17 @@ src/
 ```
 
 ### Firebase Integration
+
+**🔐 Secure Configuration Loading:**
+```typescript
+// src/firebase.ts - securely loads from environment variables
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  // ... other secure vars
+};
+```
 
 **Authentication Methods:**
 - `signInWithEmailAndPassword()` - Email/password login
@@ -105,7 +117,7 @@ src/
   - `auth/email-already-in-use` → "Email already registered"
   - `auth/popup-closed-by-user` → "Sign-in cancelled"
 
-### State Management
+**State Management:**
 
 **AuthContext provides:**
 - `user` - Current authenticated user
@@ -131,21 +143,35 @@ npm install firebase
 ```
 
 ### Configuration
-Your Firebase configuration is already set up in `src/firebase.ts`
+Your Firebase configuration is securely loaded from environment variables in `src/firebase.ts`
 
-### Development
+### 🔧 Development Setup
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Set up environment variables
+cp .env.example .env
+# Edit .env with your Firebase configuration
+
+# 3. Start development server
 npm run dev
 ```
 
-### Production Build
+### 🚀 Production Build
 ```bash
 npm run build
 ```
 
 ## 🔐 Security Configuration
 
-Make sure your Firebase Authentication settings are configured as follows:
+### ✅ **Current Security Status:**
+- **API Keys:** Stored in environment variables (.env)
+- **Git Protection:** .env file excluded from version control  
+- **Source Code:** No hardcoded credentials
+- **Production Ready:** Secure deployment configuration
+
+### ⚙️ **Firebase Settings:**
 
 1. **Sign-in method tab:**
    - ✅ Email/Password: Enabled
