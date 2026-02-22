@@ -8,19 +8,38 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   googleProvider,
+  updateProfile,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   FirebaseUser,
-  AuthError
+  AuthError,
+  updateEmail as firebaseUpdateEmail
 } from '../firebase';
+import axios from 'axios';
+
+interface UserProfile {
+  userId: string;
+  fullName: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+}
 
 interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
+  profile: UserProfile | null;
   loginWithEmail: (email: string, password: string) => Promise<void>;
-  registerWithEmail: (email: string, password: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   isEmailVerified: boolean;
   resendVerificationEmail: () => Promise<void>;
+  reloadUser: () => Promise<void>;
+  updateUserProfile: (profile: Partial<UserProfile>, password: string) => Promise<{ emailChanged: boolean }>;
+  updateEmail: (newEmail: string, password: string) => Promise<void>;
+  verifyPassword: (password: string) => Promise<boolean>;
+  fetchUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,11 +59,25 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
+      if (firebaseUser) {
+        // Use firebaseUser directly to avoid stale closure over `user` state
+        try {
+          const response = await axios.get('/api/user/profile', {
+            headers: { 'x-user-id': firebaseUser.uid }
+          });
+          setProfile(response.data);
+        } catch (error) {
+          console.error('Failed to fetch user profile on auth change:', error);
+        }
+      } else {
+        setProfile(null);
+      }
     });
 
     return unsubscribe;
@@ -86,9 +119,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const registerWithEmail = async (email: string, password: string) => {
+  const registerWithEmail = async (email: string, password: string, displayName: string) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      if (displayName) {
+        await updateProfile(result.user, {
+          displayName: displayName
+        });
+      }
       
       await sendEmailVerification(result.user);
       
@@ -174,15 +213,123 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const reloadUser = async () => {
+    if (user) {
+      try {
+        await user.reload();
+        setUser({ ...user } as FirebaseUser);
+      } catch (error) {
+        console.error('Failed to reload user:', error);
+      }
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await axios.get('/api/user/profile', {
+        headers: { 'x-user-id': user.uid }
+      });
+      setProfile(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  };
+
+  const verifyPassword = async (password: string): Promise<boolean> => {
+    if (!user || !user.email) return false;
+    
+    try {
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const updateUserProfile = async (profileData: Partial<UserProfile>, password: string): Promise<{ emailChanged: boolean }> => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      throw new Error('Invalid password');
+    }
+
+    try {
+      const currentProfile = profile || { userId: user.uid, fullName: '', phone: '', dateOfBirth: '', gender: '' };
+      
+      const response = await axios.put('/api/user/profile', {
+        userId: user.uid,
+        fullName: profileData.fullName ?? currentProfile.fullName,
+        phone: profileData.phone ?? currentProfile.phone,
+        dateOfBirth: profileData.dateOfBirth ?? currentProfile.dateOfBirth,
+        gender: profileData.gender ?? currentProfile.gender,
+        currentEmail: user.email,
+        password
+      });
+
+      await fetchUserProfile();
+
+      return { emailChanged: response.data.emailChanged };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to update profile');
+    }
+  };
+
+  const updateEmail = async (newEmail: string, password: string): Promise<void> => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      throw new Error('Invalid password');
+    }
+
+    try {
+      await axios.put('/api/user/profile', {
+        userId: user.uid,
+        fullName: profile?.fullName || '',
+        phone: profile?.phone || '',
+        dateOfBirth: profile?.dateOfBirth || '',
+        gender: profile?.gender || '',
+        currentEmail: user.email,
+        newEmail,
+        password
+      });
+
+      await firebaseUpdateEmail(user, newEmail);
+      await sendEmailVerification(user);
+      await signOut(auth);
+      
+      throw new Error('Email updated. Please check your new email to verify your account.');
+    } catch (error: any) {
+      if (error.message.includes('Email updated')) {
+        throw error;
+      }
+      throw new Error(error.response?.data?.error || 'Failed to update email');
+    }
+  };
+
   const value = {
     user,
     loading,
+    profile,
     loginWithEmail,
     registerWithEmail,
     loginWithGoogle,
     logout,
     isEmailVerified: user?.emailVerified || false,
-    resendVerificationEmail
+    resendVerificationEmail,
+    reloadUser,
+    fetchUserProfile,
+    updateUserProfile,
+    updateEmail,
+    verifyPassword
   };
 
   return (

@@ -8,6 +8,9 @@ const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
@@ -24,7 +27,22 @@ const AuthPage: React.FC = () => {
         await loginWithEmail(email, password);
         window.location.href = '/';
       } else {
-        await registerWithEmail(email, password);
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+        if (!fullName.trim()) {
+          setError('Please enter your full name');
+          setLoading(false);
+          return;
+        }
+        await registerWithEmail(email, password, fullName.trim());
         setShowVerificationMessage(true);
       }
     } catch (err: any) {
@@ -51,6 +69,9 @@ const AuthPage: React.FC = () => {
   const resetForm = () => {
     setEmail('');
     setPassword('');
+    setConfirmPassword('');
+    setFullName('');
+    setPhone('');
     setError('');
     setShowVerificationMessage(false);
   };
@@ -85,6 +106,14 @@ const AuthPage: React.FC = () => {
             {isLogin ? 'Sign in to your account to continue shopping' : 'Sign up to start shopping'}
           </p>
 
+          {!isLogin && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> You must verify your email before placing orders. After registration, check your inbox for the verification link.
+              </p>
+            </div>
+          )}
+
           {!showVerificationMessage ? (
             <>
               {/* Google Sign In Button */}
@@ -113,6 +142,18 @@ const AuthPage: React.FC = () => {
 
               {/* Email/Password Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Full Name"
+                    />
+                  </div>
+                )}
                 <div>
                   <input
                     type="email"
@@ -123,6 +164,17 @@ const AuthPage: React.FC = () => {
                     placeholder="Email address"
                   />
                 </div>
+                {!isLogin && (
+                  <div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Phone Number (Optional)"
+                    />
+                  </div>
+                )}
                 <div>
                   <input
                     type="password"
@@ -130,10 +182,23 @@ const AuthPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="Password"
+                    placeholder={isLogin ? "Password" : "Password (min 6 characters)"}
                     minLength={6}
                   />
                 </div>
+                {!isLogin && (
+                  <div>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Confirm Password"
+                      minLength={6}
+                    />
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-red-500 text-sm text-center">

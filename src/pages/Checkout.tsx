@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -8,10 +8,15 @@ import AuthGuard from '../components/AuthGuard';
 
 const Checkout: React.FC = () => {
   const { cart, getTotalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isEmailVerified, resendVerificationEmail, reloadUser } = useAuth();
   const { createOrder } = useOrder();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    reloadUser();
+  }, []);
   
   const [shippingAddress, setShippingAddress] = useState({
     fullName: '',
@@ -23,6 +28,11 @@ const Checkout: React.FC = () => {
   const totalPrice = getTotalPrice();
 
   const handlePlaceOrder = async () => {
+    if (!isEmailVerified) {
+      alert('Please verify your email before placing an order. Check your inbox for the verification link.');
+      return;
+    }
+
     if (!shippingAddress.fullName || !shippingAddress.streetAddress || !shippingAddress.city || !shippingAddress.zipCode) {
       alert('Please fill in all shipping address fields');
       return;
@@ -39,6 +49,18 @@ const Checkout: React.FC = () => {
       alert(`Failed to place order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    try {
+      await resendVerificationEmail();
+      alert('Verification email sent! Please check your inbox.');
+    } catch (error) {
+      alert('Failed to resend verification email. Please try again.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -84,6 +106,30 @@ const Checkout: React.FC = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-md bg-gray-100 text-gray-700"
                     />
                   </div>
+                  {!isEmailVerified && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                      <div className="flex items-start">
+                        <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm text-yellow-800 font-medium">
+                            Email not verified
+                          </p>
+                          <p className="text-xs text-yellow-700 mt-1">
+                            You must verify your email before placing an order.
+                          </p>
+                          <button
+                            onClick={handleResendVerification}
+                            disabled={isResending}
+                            className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+                          >
+                            {isResending ? 'Sending...' : 'Resend verification email'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
@@ -209,10 +255,10 @@ const Checkout: React.FC = () => {
 
                 <button
                   onClick={handlePlaceOrder}
-                  disabled={isProcessing || cart.length === 0}
+                  disabled={isProcessing || cart.length === 0 || !isEmailVerified}
                   className="w-full py-3 px-4 bg-black text-white text-sm font-medium tracking-wider uppercase rounded-md hover:bg-gray-900 transition-colors duration-200 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? 'Processing...' : 'Place Order'}
+                  {isProcessing ? 'Processing...' : !isEmailVerified ? 'Verify Email to Order' : 'Place Order'}
                 </button>
                 
                 <Link
