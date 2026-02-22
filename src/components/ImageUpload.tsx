@@ -65,7 +65,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const getImageUrl = (image: File | string): string => {
     if (typeof image === 'string') {
-      return image.startsWith('http') ? image : `http://localhost:5001${image}`;
+      return image.startsWith('http') ? image : image;
     }
     return URL.createObjectURL(image);
   };

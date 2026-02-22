@@ -89,7 +89,7 @@ const ImageManager: React.FC<ImageManagerProps> = ({
   };
 
   const getImageUrl = (imagePath: string): string => {
-    return imagePath.startsWith('http') ? imagePath : `http://localhost:5001${imagePath}`;
+    return imagePath.startsWith('http') ? imagePath : imagePath;
   };
 
   const getImageName = (imagePath: string): string => {

@@ -40,6 +40,7 @@ interface OrderContextType {
   getOrderById: (orderId: string) => Order | undefined;
   cancelOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+  refreshOrders: () => Promise<void>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -68,7 +69,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       if (user) {
         setLoading(true);
         try {
-          const response = await fetch(`http://localhost:5001/api/orders/user/${user.uid}`);
+          const response = await fetch(`/api/orders/user/${user.uid}`);
           if (response.ok) {
             const backendOrders = await response.json();
             const parsedOrders = backendOrders.map((order: any) => ({
@@ -160,7 +161,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       };
 
       // Call backend API to create order
-      const response = await fetch('http://localhost:5001/api/orders', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,6 +212,29 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     return orders.find(order => order.id === orderId);
   };
 
+  const refreshOrders = async (): Promise<void> => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/orders/user/${user.uid}`);
+      if (response.ok) {
+        const backendOrders = await response.json();
+        const parsedOrders = backendOrders.map((order: any) => ({
+          ...order,
+          createdAt: new Date(order.createdAt),
+          updatedAt: new Date(order.updatedAt)
+        }));
+        setOrders(parsedOrders);
+        localStorage.setItem(`orders_${user.uid}`, JSON.stringify(parsedOrders));
+      }
+    } catch (error) {
+      console.error('Failed to refresh orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cancelOrder = async (orderId: string): Promise<void> => {
     setLoading(true);
     try {
@@ -230,7 +254,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       // Update backend first
-      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/status`, {
+      const response = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +295,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     createOrder,
     getOrderById,
     cancelOrder,
-    updateOrderStatus
+    updateOrderStatus,
+    refreshOrders
   };
 
   return (

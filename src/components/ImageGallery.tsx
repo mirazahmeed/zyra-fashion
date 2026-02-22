@@ -132,7 +132,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onLogout }) => {
                   <div key={index} className="relative group">
                     <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                       <img
-                        src={image.startsWith('http') ? image : `http://localhost:5001${image}`}
+                        src={image.startsWith('http') ? image : image}
                         alt={`Used image ${index + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {

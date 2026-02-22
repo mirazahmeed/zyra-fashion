@@ -18,6 +18,38 @@ interface Product {
   inventory: { [key: string]: number };
 }
 
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  selectedColor?: string;
+  selectedSize?: string;
+  quantity: number;
+}
+
+interface ShippingAddress {
+  fullName: string;
+  streetAddress: string;
+  city: string;
+  zipCode: string;
+}
+
+interface Order {
+  _id?: string;
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+  orderNumber: string;
+}
+
 interface AdminDashboardProps {
   onLogout: () => void;
 }
@@ -29,7 +61,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState<'products' | 'images'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'images' | 'orders'>('products');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -61,6 +95,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       setProducts(response.data);
     } catch (err) {
       setError('Failed to fetch products');
+    }
+  };
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await axios.get('/api/admin/orders', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setOrders(response.data);
+    } catch (err) {
+      setError('Failed to fetch orders');
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(`/api/orders/${orderId}/status`, { status }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId || order._id === orderId
+            ? { ...order, status: status as Order['status'], updatedAt: new Date().toISOString() }
+            : order
+        )
+      );
+      setSuccess('Order status updated successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to update order status');
     }
   };
 
@@ -321,6 +390,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 Products
               </button>
               <button
+                onClick={() => {
+                  setActiveTab('orders');
+                  fetchOrders();
+                }}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'orders'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Orders
+              </button>
+              <button
                 onClick={() => setActiveTab('images')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === 'images'
@@ -365,6 +447,100 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         {/* Content based on active tab */}
         {activeTab === 'images' ? (
           <ImageGallery onLogout={onLogout} />
+        ) : activeTab === 'orders' ? (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {ordersLoading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-600">Loading orders...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No orders found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Order #
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Items
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {orders.map((order) => (
+                      <motion.tr
+                        key={order.id || order._id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {order.orderNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div>{order.shippingAddress?.fullName}</div>
+                          <div className="text-xs text-gray-400">{order.shippingAddress?.city}, {order.shippingAddress?.zipCode}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {order.items?.length} item(s)
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          ${order.total?.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <select
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order.id || order._id!, e.target.value)}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-indigo-500"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <div className="mb-6">
@@ -637,7 +813,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <img
-                            src={product.image.startsWith('http') ? product.image : `http://localhost:5001${product.image}`}
+                            src={product.image.startsWith('http') ? product.image : product.image}
                             alt={product.name}
                             className="h-12 w-12 object-cover rounded"
                             onError={(e) => {

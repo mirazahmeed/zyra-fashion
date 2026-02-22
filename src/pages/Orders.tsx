@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,11 @@ import AuthGuard from '../components/AuthGuard';
 
 const Orders: React.FC = () => {
   const { user } = useAuth();
-  const { orders, loading } = useOrder();
+  const { orders, loading, refreshOrders } = useOrder();
+
+  useEffect(() => {
+    refreshOrders();
+  }, []);
 
   return (
     <AuthGuard>

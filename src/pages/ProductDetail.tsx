@@ -235,7 +235,7 @@ const ProductDetail: React.FC = () => {
                     }`}
                   >
                     <img
-                      src={img.startsWith('http') ? img : `http://localhost:5001${img}`}
+                      src={img.startsWith('http') ? img : img}
                       alt={`${product.name} thumbnail ${index + 1}`}
                       className="w-full h-full object-cover"
                     />

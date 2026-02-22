@@ -117,7 +117,7 @@ const SwipableImage: React.FC<SwipableImageProps> = ({
         {/* Main image */}
         <motion.img
           key={currentIndex}
-          src={images[currentIndex]?.startsWith('http') ? images[currentIndex] : `http://localhost:5001${images[currentIndex]}`}
+          src={images[currentIndex]?.startsWith('http') ? images[currentIndex] : images[currentIndex]}
           alt={alt}
           className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
           initial={{ opacity: 0, x: 100 }}
