@@ -27,7 +27,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await loginWithEmail(email, password);
         onClose();
       } else {
-        await registerWithEmail(email, password);
+        await registerWithEmail(email, password, '');
         setShowVerificationMessage(true);
       }
     } catch (err: any) {

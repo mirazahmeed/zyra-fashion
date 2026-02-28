@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartProvider } from './context/CartContext';
@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { OrderProvider } from './context/OrderContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import LoadingSpinner from './components/LoadingSpinner';
 import Home from './pages/Home';
 import Women from './pages/Women';
 import Men from './pages/Men';
@@ -20,6 +21,25 @@ import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-500 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <AuthProvider>
       <CartProvider>

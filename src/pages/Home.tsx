@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import Hero from '../components/Hero';
 
 interface Product {
   id: number;
@@ -16,9 +17,20 @@ interface Product {
   inventory?: { [key: string]: number };
 }
 
+interface HeroSettings {
+  type: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  ctaText: string;
+  ctaLink: string;
+  enabled: boolean;
+}
+
 const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroSettings, setHeroSettings] = useState<HeroSettings | null>(null);
 
   useEffect(() => {
     fetch('/api/products/best')
@@ -30,6 +42,15 @@ const Home: React.FC = () => {
       .catch(error => {
         console.error('Error fetching products:', error);
         setLoading(false);
+      });
+
+    fetch('/api/settings/hero')
+      .then(response => response.json())
+      .then(data => {
+        setHeroSettings(data);
+      })
+      .catch(error => {
+        console.error('Error fetching hero settings:', error);
       });
   }, []);
 
@@ -43,57 +64,67 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - OUR COLLECTION */}
-      <section className="relative h-screen flex items-center justify-center bg-white">
-        <div className="absolute inset-0 bg-black opacity-5"></div>
-        <div className="relative z-10 text-center px-8">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight text-black mb-8"
-          >
-            OUR
-            <br />
-            COLLECTION
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4 }}
-            className="text-lg font-light tracking-wide text-gray-600 max-w-2xl mx-auto mb-12"
-          >
-            Minimalist luxury fashion designed for the modern individual
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.6 }}
-            className="flex justify-center space-x-8"
-          >
-            <Link to="/women" className="group">
-              <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
-                Women
-              </span>
-            </Link>
-            <Link to="/men" className="group">
-              <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
-                Men
-              </span>
-            </Link>
-            <Link to="/kids" className="group">
-              <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
-                Kids
-              </span>
-            </Link>
-            <Link to="/unisex" className="group">
-              <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
-                Unisex
-              </span>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+      {/* Dynamic Hero Section */}
+      {heroSettings?.enabled ? (
+        <Hero
+          title={heroSettings.title}
+          subtitle={heroSettings.subtitle}
+          image={heroSettings.image}
+          ctaText={heroSettings.ctaText}
+          ctaLink={heroSettings.ctaLink}
+        />
+      ) : (
+        <section className="relative h-screen flex items-center justify-center bg-white">
+          <div className="absolute inset-0 bg-black opacity-5"></div>
+          <div className="relative z-10 text-center px-8">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight text-black mb-8"
+            >
+              OUR
+              <br />
+              COLLECTION
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.4 }}
+              className="text-lg font-light tracking-wide text-gray-600 max-w-2xl mx-auto mb-12"
+            >
+              Minimalist luxury fashion designed for the modern individual
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.6 }}
+              className="flex justify-center space-x-8"
+            >
+              <Link to="/women" className="group">
+                <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
+                  Women
+                </span>
+              </Link>
+              <Link to="/men" className="group">
+                <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
+                  Men
+                </span>
+              </Link>
+              <Link to="/kids" className="group">
+                <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
+                  Kids
+                </span>
+              </Link>
+              <Link to="/unisex" className="group">
+                <span className="text-sm font-medium tracking-widest text-black uppercase border-b border-black pb-1 transition-all duration-300 group-hover:border-transparent">
+                  Unisex
+                </span>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Product Gallery Grid */}
       <section className="py-24">

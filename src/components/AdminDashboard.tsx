@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ImageUpload from './ImageUpload';
 import ImageGallery from './ImageGallery';
+import HeroSettings from './HeroSettings';
 
 interface Product {
   id: number;
@@ -61,7 +62,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState<'products' | 'images' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'images' | 'orders' | 'hero'>('products');
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
@@ -412,6 +413,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               >
                 Images
               </button>
+              <button
+                onClick={() => setActiveTab('hero')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'hero'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Hero
+              </button>
             </nav>
           </div>
         </div>
@@ -447,6 +458,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         {/* Content based on active tab */}
         {activeTab === 'images' ? (
           <ImageGallery onLogout={onLogout} />
+        ) : activeTab === 'hero' ? (
+          <HeroSettings />
         ) : activeTab === 'orders' ? (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {ordersLoading ? (
